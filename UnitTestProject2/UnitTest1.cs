@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
-namespace UnitTestProject1
+namespace UnitTestProject2
 {
     [TestClass]
     public class UnitTest1
@@ -34,18 +36,35 @@ namespace UnitTestProject1
         {
             public string Name { get; set; }
             public int Age { get; set; }
+            public List<string> MyProperty = new List<string>();
+            [BsonIgnore]
+            public bool MyProperty2 { get; set; }
+        }
+
+        [TestMethod]
+        public void TestMethod5()
+        {
+            var p = new Person
+            {
+                Age = 12,
+                Name = "sss"
+            };
+            p.MyProperty.AddRange(new string[] { "dd", "22" });
+            p.MyProperty2 = true;
+            Console.WriteLine(p.ToJson());
         }
 
         [TestMethod]
         public void TestMethod4()
         {
-            //var p = new Person
-            //{
-            //    Age = 12,
-            //    Name = "sss"
-            //};
+            var p = new Person
+            {
+                Age = 12,
+                Name = "sss"
+            };
+            p.MyProperty.AddRange(new string[] { "dd", "22" });
 
-            //Console.WriteLine(p.ToJson());
+            Console.WriteLine(p.ToJson());
         }
     }
 }
