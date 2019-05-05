@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using WebApplication2.Properties;
+using WebApplication2.Rentals;
 
 namespace WebApplication2.App_Start
 {
@@ -14,6 +15,11 @@ namespace WebApplication2.App_Start
         {
             var client = new MongoClient(Settings.Default.RealEstateConnectionString);
             MongoDatabase = client.GetDatabase(Settings.Default.RealEstateDatabaseName);
+        }
+
+        public IMongoCollection<Rental> Rentals
+        {
+            get { return MongoDatabase.GetCollection<Rental>("rentals"); }
         }
     }
 }
