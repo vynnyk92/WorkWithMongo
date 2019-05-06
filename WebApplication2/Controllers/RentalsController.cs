@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,12 +16,35 @@ namespace WebApplication2.Controllers
     {
         public readonly RealEstateContext realEstateContext = new RealEstateContext();
 
-        public ActionResult Index()
+        public ActionResult Index(RentalsFilter rentalsFilter)
         {
-            var rentals = realEstateContext.Rentals.Find(_=>true).ToList();
-            return View(rentals);
+            var rentals = FilterRentals(rentalsFilter);
+            var model = new RentalsList()
+            {
+                Rentals = rentals,
+                RentalsFilter = rentalsFilter
+            };
+            return View(model);
         }
 
+        private List<Rental> FilterRentals(RentalsFilter rentalsFilter)
+        {
+            List<Rental> rentals = null;
+            if (!rentalsFilter.PriceLimit.HasValue)
+            {
+                rentals = realEstateContext.Rentals.Find(_ => true).ToList();
+            }
+            else
+            {
+                //    var filter = Builders<Rental>.Filter.Lte("Price", rentalsFilter.PriceLimit.Value);
+                //    var sorter = Builders<Rental>.Sort.Ascending(r=>r.Price);
+                //    rentals = realEstateContext.Rentals.FindSync(filter, new FindOptions<Rental, Rental>() { Sort = sorter }).ToList();
+                //}
+
+                rentals = realEstateContext.Rentals.AsQueryable<Rental>().Where(r => r.Price <= rentalsFilter.PriceLimit.Value).OrderBy(r => r.Price).ToList();
+            }
+            return rentals;
+        }
 
         // GET: Rentals
         public ActionResult Post()
@@ -66,6 +90,36 @@ namespace WebApplication2.Controllers
             realEstateContext.Rentals.FindOneAndDelete(query_id);
 
             return RedirectToAction("Index");
+        }
+
+        public ActionResult GroupRentals()
+        {
+            var ranges = QueryPriceDistribution.Run(realEstateContext.Rentals);
+            return Json(ranges, JsonRequestBehavior.AllowGet);
+        }
+    }
+
+    public class QueryPriceDistribution
+    {
+        public static IEnumerable<BsonDocument> Run(IMongoCollection<Rental> mongoCollection)
+        {
+            var priceRange = new BsonDocument("$subtract",
+                new BsonArray {
+                    "$Price", new BsonDocument("$mod", new BsonArray{ "$Price", 500})
+                });
+
+            var grouping = new BsonDocument {
+                    { "_id", priceRange },
+                    { "count", new BsonDocument("$sum", 1)}
+                };
+
+            //var args = new AggregateArgs
+            //{
+
+            //}
+
+            var priceRanges = mongoCollection.Aggregate().Group(grouping).ToList();
+            return priceRanges;
         }
     }
 }
